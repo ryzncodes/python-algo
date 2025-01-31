@@ -7,7 +7,6 @@ A professional Python-based trading system specifically designed for XAUUSD (Gol
 - Live trading with MetaTrader 5 integration
 - Real-time Telegram notifications for trades and updates
 - Test mode for safe strategy validation
-- Moving Average Crossover strategy optimization
 - Dynamic position sizing based on risk amount
 - Advanced risk management features
 - Comprehensive backtesting engine

@@ -1,5 +1,5 @@
 .env
-strategies/*
+strategies/ma_cross.py
 logs/*
 venv/*
 .venv
