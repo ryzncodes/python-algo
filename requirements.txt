@@ -1,0 +1,6 @@
+MetaTrader5==5.0.4803
+numpy==1.24.3
+pandas==2.0.3
+python-telegram-bot==21.2
+pytz==2023.3
+python-dotenv==1.0.0 

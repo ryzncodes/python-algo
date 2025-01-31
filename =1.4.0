@@ -1,0 +1,17 @@
+Collecting scikit-learn
+  Using cached scikit_learn-1.6.1-cp313-cp313-win_amd64.whl.metadata (15 kB)
+Requirement already satisfied: numpy>=1.19.5 in c:\users\faizk\project\be-xauusd\venv\lib\site-packages (from scikit-learn) (2.2.2)
+Collecting scipy>=1.6.0 (from scikit-learn)
+  Downloading scipy-1.15.1-cp313-cp313-win_amd64.whl.metadata (60 kB)
+Collecting joblib>=1.2.0 (from scikit-learn)
+  Downloading joblib-1.4.2-py3-none-any.whl.metadata (5.4 kB)
+Collecting threadpoolctl>=3.1.0 (from scikit-learn)
+  Downloading threadpoolctl-3.5.0-py3-none-any.whl.metadata (13 kB)
+Downloading scikit_learn-1.6.1-cp313-cp313-win_amd64.whl (11.1 MB)
+   ---------------------------------------- 11.1/11.1 MB 72.9 MB/s eta 0:00:00
+Downloading joblib-1.4.2-py3-none-any.whl (301 kB)
+Downloading scipy-1.15.1-cp313-cp313-win_amd64.whl (43.6 MB)
+   ---------------------------------------- 43.6/43.6 MB 32.7 MB/s eta 0:00:00
+Downloading threadpoolctl-3.5.0-py3-none-any.whl (18 kB)
+Installing collected packages: threadpoolctl, scipy, joblib, scikit-learn
+Successfully installed joblib-1.4.2 scikit-learn-1.6.1 scipy-1.15.1 threadpoolctl-3.5.0
