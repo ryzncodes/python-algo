@@ -196,4 +196,17 @@ class TelegramNotifier:
             f"TP: {position_info['tp']:.2f}"
         )
         
-        self.send_message(message) 
+        self.send_message(message)
+
+    def send_breakeven_notification(self, ticket, half_volume, partial_close_profit, breakeven_sl, current_price, entry_price, reply_to=None):
+        message = (
+            f"🔄 <b>Position Partially Closed at Breakeven</b>\n"
+            f"🎫 Ticket: {ticket}\n"
+            f"📉 Closed Amount: {half_volume} lots\n"
+            f"💰 Partial Profit: ${partial_close_profit:.2f}\n"
+            f"📈 Remaining Position: {half_volume} lots\n"
+            f"🎯 New SL: {breakeven_sl:.2f} (Breakeven + {(breakeven_sl - entry_price)*10:.1f} pips buffer)\n"
+            f"📊 Current Price: {current_price:.2f}\n"
+            f"📏 Profit Distance: {(current_price - entry_price)*10:.1f} pips"
+        )
+        return self.send_message(message, reply_to) 

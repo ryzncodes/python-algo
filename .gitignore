@@ -3,3 +3,9 @@ strategies/ma_cross.py
 logs/*
 venv/*
 .venv
+strategies/__pycache__/*
+connectors/__pycache__/*
+traders/__pycache__/*
+config/__pycache__/*
+notfications/__pycache__/*
+*.pyc

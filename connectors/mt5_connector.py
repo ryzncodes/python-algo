@@ -59,7 +59,7 @@ class MT5Connector:
             return False
 
         # Initialize symbol
-        symbol = "XAUUSDc"  # Use exact symbol
+        symbol = "XAUUSD"  # Use exact symbol
         logger.info(f"Attempting to initialize symbol: {symbol}")
         
         if mt5.symbol_select(symbol, True):

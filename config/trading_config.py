@@ -16,7 +16,7 @@ class TradingConfig:
     MAX_STOP_PIPS: float = 80
     
     # Trading parameters
-    SYMBOL: str = os.getenv('SYMBOL', 'XAUUSDc')
+    SYMBOL: str = os.getenv('SYMBOL', 'XAUUSD')
     TIMEFRAME: int = mt5.TIMEFRAME_M5
     RISK_PER_TRADE: float = float(os.getenv('RISK_PER_TRADE', '200'))
     CHECK_INTERVAL: int = 1

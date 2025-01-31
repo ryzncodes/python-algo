@@ -22,7 +22,7 @@ class LiveTrader(BaseTrader):
     def __init__(self,
                  strategy: BaseStrategy,
                  connector: BaseConnector,
-                 symbol: str = "XAUUSDc",
+                 symbol: str = "XAUUSD",
                  timeframe: int = mt5.TIMEFRAME_M1,
                  risk_per_trade: float = 500,
                  min_lot: float = 0.20,
@@ -361,21 +361,21 @@ class LiveTrader(BaseTrader):
                                 if self.connector.modify_position(pos['ticket'], breakeven_sl, take_profit):
                                     logger.info(f"Moving SL to breakeven (with {self.BE_BUFFER*10:.1f} pips buffer) for remaining {half_volume} lots of ticket {pos['ticket']}")
                                     if self.telegram:
-                                        message = (
-                                            f"🔄 <b>Position Partially Closed at Breakeven</b>\n"
-                                            f"🎫 Ticket: {pos['ticket']}\n"
-                                            f"📉 Closed Amount: {half_volume} lots\n"
-                                            f"💰 Partial Profit: ${partial_close_profit:.2f}\n"
-                                            f"📈 Remaining Position: {half_volume} lots\n"
-                                            f"🎯 New SL: {breakeven_sl:.2f} (Breakeven + {self.BE_BUFFER*10:.1f} pips buffer)\n"
-                                            f"📊 Current Price: {current_price:.2f}\n"
-                                            f"📏 Profit Distance: {(current_price - entry_price)*10:.1f} pips"
+                                        # Use the original signal message ID for reply
+                                        reply_to = self.position_messages.get(pos['ticket'])
+                                        message_id = self.telegram.send_breakeven_notification(
+                                            ticket=pos['ticket'],
+                                            half_volume=half_volume,
+                                            partial_close_profit=partial_close_profit,
+                                            breakeven_sl=breakeven_sl,
+                                            current_price=current_price,
+                                            entry_price=entry_price,
+                                            reply_to=reply_to
                                         )
-                                        message_id = self.telegram.send_message(message)
                                         # Store breakeven message info
                                         self.breakeven_messages[pos['ticket']] = {
                                             'breakeven_msg_id': message_id,
-                                            'original_msg_id': self.position_messages.get(pos['ticket']),
+                                            'original_msg_id': reply_to,
                                             'entry_price': entry_price,
                                             'partial_profit': partial_close_profit
                                         }
@@ -408,21 +408,21 @@ class LiveTrader(BaseTrader):
                                 if self.connector.modify_position(pos['ticket'], breakeven_sl, take_profit):
                                     logger.info(f"Moving SL to breakeven (with {self.BE_BUFFER*10:.1f} pips buffer) for remaining {half_volume} lots of ticket {pos['ticket']}")
                                     if self.telegram:
-                                        message = (
-                                            f"🔄 <b>Position Partially Closed at Breakeven</b>\n"
-                                            f"🎫 Ticket: {pos['ticket']}\n"
-                                            f"📉 Closed Amount: {half_volume} lots\n"
-                                            f"💰 Partial Profit: ${partial_close_profit:.2f}\n"
-                                            f"📈 Remaining Position: {half_volume} lots\n"
-                                            f"🎯 New SL: {breakeven_sl:.2f} (Breakeven + {self.BE_BUFFER*10:.1f} pips buffer)\n"
-                                            f"📊 Current Price: {current_price:.2f}\n"
-                                            f"📏 Profit Distance: {(entry_price - current_price)*10:.1f} pips"
+                                        # Use the original signal message ID for reply
+                                        reply_to = self.position_messages.get(pos['ticket'])
+                                        message_id = self.telegram.send_breakeven_notification(
+                                            ticket=pos['ticket'],
+                                            half_volume=half_volume,
+                                            partial_close_profit=partial_close_profit,
+                                            breakeven_sl=breakeven_sl,
+                                            current_price=current_price,
+                                            entry_price=entry_price,
+                                            reply_to=reply_to
                                         )
-                                        message_id = self.telegram.send_message(message)
                                         # Store breakeven message info
                                         self.breakeven_messages[pos['ticket']] = {
                                             'breakeven_msg_id': message_id,
-                                            'original_msg_id': self.position_messages.get(pos['ticket']),
+                                            'original_msg_id': reply_to,
                                             'entry_price': entry_price,
                                             'partial_profit': partial_close_profit
                                         }
@@ -431,21 +431,9 @@ class LiveTrader(BaseTrader):
                         else:
                             logger.debug(f"SL already at breakeven for ticket {pos['ticket']}")
             
-            # Position closed
+            # Position closed - determine closure type
             else:
                 logger.info(f"Position {pos['ticket']} no longer in open positions")
-                
-                # Determine if position hit SL or TP based on last known distances
-                if hasattr(pos, 'last_sl_distance') and hasattr(pos, 'last_tp_distance'):
-                    if pos['last_sl_distance'] <= pos['last_tp_distance']:
-                        closure_type = "SL"
-                        logger.info(f"Position likely hit SL (Last SL Distance: {pos['last_sl_distance']:.1f} pips, Last TP Distance: {pos['last_tp_distance']:.1f} pips)")
-                    else:
-                        closure_type = "TP"
-                        logger.info(f"Position likely hit TP (Last SL Distance: {pos['last_sl_distance']:.1f} pips, Last TP Distance: {pos['last_tp_distance']:.1f} pips)")
-                else:
-                    closure_type = "Unknown"
-                    logger.info("Could not determine closure type - no distance history")
                 
                 if self.telegram:
                     # Get message IDs for reply
@@ -461,33 +449,52 @@ class LiveTrader(BaseTrader):
                         # If position didn't hit breakeven, reply to original message
                         reply_to = self.position_messages.get(pos['ticket'])
                     
-                    # Calculate profit based on position type
-                    if closure_type == "TP":
-                        exit_price = pos['tp']
-                    elif closure_type == "SL":
-                        exit_price = pos['sl']
-                    else:
-                        exit_price = pos['price_current']  # Use last known price
-                        
+                    # Calculate exit price based on last known price
+                    exit_price = pos['price_current']
+                    entry_price = pos['price_open']
+                    
+                    # Calculate pip distance between entry and exit
+                    pip_distance = abs(exit_price - entry_price) * 10
+                    
                     # Calculate profit with proper decimal places
                     if pos['type'] == 0:  # Buy
-                        profit = round((exit_price - pos['price_open']) * pos['volume'] * 100, 2)  # Changed from 1000 to 100
+                        profit = round((exit_price - entry_price) * pos['volume'] * 100, 2)
                     else:  # Sell
-                        profit = round((pos['price_open'] - exit_price) * pos['volume'] * 100, 2)  # Changed from 1000 to 100
-                    
+                        profit = round((entry_price - exit_price) * pos['volume'] * 100, 2)
+
+                    # Determine closure type based on pip distance and profit
+                    BE_THRESHOLD = 3.0  # Consider within 3 pips as breakeven
+                    if pip_distance <= BE_THRESHOLD:
+                        closure_type = "BE"  # Breakeven
+                        title = "Breakeven Exit"
+                        emoji = "🔄"
+                    else:
+                        if profit > 0:
+                            closure_type = "TP"
+                            title = "Take Profit Hit"
+                            emoji = "🎯"
+                        else:
+                            closure_type = "SL"
+                            title = "Stop Loss Hit"
+                            emoji = "🛑"
+
                     # Convert position time from timestamp to datetime
                     pos_time = datetime.fromtimestamp(pos['time']) if isinstance(pos['time'], (int, float)) else pos['time']
                     
-                    self.telegram.send_tp_sl_notification(
-                        position_type="buy" if pos['type'] == 0 else "sell",
-                        entry_price=pos['price_open'],
-                        exit_price=exit_price,
-                        profit=profit,
-                        duration=str(datetime.now() - pos_time),
-                        closure_type=closure_type,
-                        reply_to=reply_to,
-                        additional_info=additional_info
+                    # Construct message
+                    message = (
+                        f"{emoji} <b>{title}</b> {emoji}\n"
+                        f"Type: {pos['type']}\n"
+                        f"Entry: ${entry_price:.2f}\n"
+                        f"Exit: ${exit_price:.2f}\n"
+                        f"Distance: {pip_distance:.1f} pips\n"
+                        f"💰 Profit: ${profit:.2f}\n"
+                        f"⏱ Duration: {str(datetime.now() - pos_time)}"
+                        f"{additional_info}"
                     )
+                    
+                    # Send notification
+                    self.telegram.send_message(message, reply_to)
                 
                 self.positions.remove(pos)
                 self.trade_history.append(pos)
